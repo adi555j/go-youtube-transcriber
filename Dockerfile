@@ -28,5 +28,8 @@ COPY --from=builder /app/main .
 # Expose application port
 EXPOSE 8080
 
+#Set to release mode for production
+ENV GIN_MODE=release
+
 # Start the application
 CMD ["./main"]
