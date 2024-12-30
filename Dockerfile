@@ -26,7 +26,7 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 # Expose application port
-EXPOSE 8080
+EXPOSE 5002
 
 #Set to release mode for production
 ENV GIN_MODE=release
