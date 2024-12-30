@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Transcript represents a subtitle entry
 type Transcript struct {
 	Text     string
 	Duration float64
@@ -53,51 +54,72 @@ func FetchTranscript(videoID, lang string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to parse captionTracks")
 	}
 
-	// Find the appropriate transcript URL
-	var transcriptURL string
+	// Try fetching in different order: auto → lang → en → first available
+	preferredLanguages := []string{"auto", lang, "en"}
+	for _, preferredLang := range preferredLanguages {
+		transcriptURL := findTranscriptURL(captionTracks, preferredLang)
+		if transcriptURL != "" {
+			log.Printf("✅ Transcript URL found with language: %s\n", preferredLang)
+			return fetchAndParseTranscript(transcriptURL, preferredLang)
+		}
+	}
+
+	// Fallback to the first available track
+	if len(captionTracks) > 0 {
+		for _, track := range captionTracks {
+			if baseURL, ok := track["baseUrl"].(string); ok {
+				log.Println("✅ Fallback to first available transcript URL.")
+				return fetchAndParseTranscript(baseURL, "fallback")
+			}
+		}
+	}
+
+	log.Println("❌ No valid transcript URL found in any language.")
+	return "", "", fmt.Errorf("no transcript available in any preferred language")
+}
+
+// findTranscriptURL searches for the transcript URL for the given language.
+func findTranscriptURL(captionTracks []map[string]interface{}, lang string) string {
 	for _, track := range captionTracks {
 		if lang == "auto" || track["languageCode"] == lang {
 			if baseURL, ok := track["baseUrl"].(string); ok {
 				decodedURL, err := url.QueryUnescape(baseURL)
 				if err != nil {
 					log.Println("❌ Failed to decode baseUrl:", err)
-					return "", "", fmt.Errorf("failed to decode transcript URL: %w", err)
+					continue
 				}
-				transcriptURL = decodedURL
-				break
+				return decodedURL
 			}
 		}
 	}
+	return ""
+}
 
-	if transcriptURL == "" {
-		log.Println("❌ No valid transcript URL found for language:", lang)
-		return "", "", fmt.Errorf("no transcript available for language: %s", lang)
-	}
+// fetchAndParseTranscript fetches and parses the transcript from a given URL.
+func fetchAndParseTranscript(transcriptURL, lang string) (string, string, error) {
+	log.Println("🔄 Fetching transcript from URL:", transcriptURL)
 
-	log.Println("✅ Transcript URL:", transcriptURL)
-
-	// Fetch the transcript
-	transcriptResp, err := http.Get(transcriptURL)
+	resp, err := http.Get(transcriptURL)
 	if err != nil {
 		log.Println("❌ Failed to fetch transcript from URL.")
 		return "", "", fmt.Errorf("failed to fetch transcript: %w", err)
 	}
-	defer transcriptResp.Body.Close()
+	defer resp.Body.Close()
 
-	transcriptBody, err := ioutil.ReadAll(transcriptResp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("❌ Failed to read transcript response body.")
 		return "", "", fmt.Errorf("failed to read transcript response: %w", err)
 	}
 
-	if len(transcriptBody) == 0 {
+	if len(body) == 0 {
 		log.Println("❗ Transcript body is empty. Retrying with 'auto' language selection...")
-		return FetchTranscript(videoID, "auto")
+		return "", "", fmt.Errorf("transcript body is empty")
 	}
 
 	// Extract transcript content
 	reXML := regexp.MustCompile(`<text start="([^"]*)" dur="([^"]*)">([^<]*)<\/text>`)
-	matchesXML := reXML.FindAllStringSubmatch(string(transcriptBody), -1)
+	matchesXML := reXML.FindAllStringSubmatch(string(body), -1)
 	log.Println("🔄 Found Transcript Matches:", len(matchesXML))
 
 	var transcriptText []string
