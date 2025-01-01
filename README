@@ -1,0 +1,5 @@
+docker build -t adi555j/youtube-transcriber:latest . 
+
+ docker tag adi555j/youtube-transcriber:latest ghcr.io/adi555j/youtube-transcriber:latest
+
+  docker push ghcr.io/adi555j/youtube-transcriber:latest
