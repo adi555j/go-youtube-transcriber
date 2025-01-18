@@ -68,6 +68,9 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 This project is licensed under the [MIT License](LICENSE).
 
+## ☕ Support
+
+If you find this project useful, consider supporting me by buying me a coffee :). https://buymeacoffee.com/adi555j
 ---
 
 Happy transcribing!
