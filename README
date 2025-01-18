@@ -1,5 +1,13 @@
-docker build -t adi555j/youtube-transcriber:latest . 
+### This is the transcriber used in https://notelytics.com :)
 
- docker tag adi555j/youtube-transcriber:latest ghcr.io/adi555j/youtube-transcriber:latest
+### Directly pull the image and run it locally
 
-  docker push ghcr.io/adi555j/youtube-transcriber:latest
+docker run -d -p 8080:5002 adi555j/youtube-transcriber-go:latest
+
+### Run with docker
+docker build -t youtube-transcriber-go .
+
+docker run -d -p 8080:5002 youtube-transcriber-go
+
+### Request example
+curl -X GET "http://localhost:8080/transcript?videoId=dQw4w9WgXcQ"
